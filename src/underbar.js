@@ -86,6 +86,7 @@
   // Return all elements of an array that pass a truth test.
   _.filter = function(collection, test) {
     // define a new array
+    test = test || _.identity;
     var filtered = [];
     // iterate through collection
     _.each(collection, function(item) {
@@ -115,27 +116,31 @@
     var unique = [];
     var iteratedUnique = [];
     //iterate through array
-    _.each(array, function(value, key) {
+    _.each(array, function(value) {
       //apply iterator
       var iteratedValue = iterator(value);
       //if new array does not include iterated value
       if (!iteratedUnique.includes(iteratedValue)) {
+        // push iterated values
         unique.push(value);
         iteratedUnique.push(iteratedValue);
       }
     })
-
-
-        // push iterated values
-    // return array
+    return unique;
   };
 
 
   // Return the results of applying an iterator to each element.
   _.map = function(collection, iterator) {
-    // map() is a useful primitive iteration function that works a lot
-    // like each(), but in addition to running the operation on all
-    // the members, it also maintains an array of results.
+    // create result array
+    var result = [];
+    // iterate over the collection
+    _.each(collection, function (val) {
+      // add the result of calling the iterator on the current value to the result collection
+      result.push(iterator(val));
+    });
+    // return result array
+    return result;
   };
 
   /*
@@ -177,6 +182,17 @@
   //   }); // should be 5, regardless of the iterator function passed in
   //          No accumulator is given so the first element is used.
   _.reduce = function(collection, iterator, accumulator) {
+    // create copy of the input array
+    var inputArray = JSON.parse(JSON.stringify(collection));
+    // set memo to either the accumulator or shift collection
+    var memo = accumulator === undefined ? inputArray.shift() : accumulator;
+    // iterate over the array
+    _.each(inputArray, function (item) {
+      // invoke the iterator with memo and item
+      memo = iterator(memo, item);
+    });
+    // return memo
+    return memo;
   };
 
   // Determine if the array or object contains a given value (using `===`).
@@ -194,13 +210,33 @@
 
   // Determine whether all of the elements match a truth test.
   _.every = function(collection, iterator) {
-    // TIP: Try re-using reduce() here.
+    // if the collection is empty,
+    if (collection.length === 0) {
+      // return true
+      return true;
+    };
+    // set iterator to identity if no iterator is available
+    iterator = iterator || _.identity;
+    // return the result of reducing the collection
+    return _.reduce(collection, function (memo, item) {
+      // if calling the iterator on the item returned false
+      if (!memo) {
+        // return false
+        return false;
+      }
+      // return the boolean result of calling the iterator on the item
+      return !!iterator(item);
+    }, true);
   };
 
   // Determine whether any of the elements pass a truth test. If no iterator is
   // provided, provide a default one
   _.some = function(collection, iterator) {
-    // TIP: There's a very clever way to re-use every() here.
+    iterator = iterator || _.identity;
+
+    return !_.every(collection, function (item) {
+      return !iterator(item);
+    })
   };
 
 
@@ -223,11 +259,40 @@
   //     bla: "even more stuff"
   //   }); // obj1 now contains key1, key2, key3 and bla
   _.extend = function(obj) {
+    // slice a copy of the arguments array to only include the second argument onwards
+    var otherObjects = (Array.from(arguments)).slice(1);
+    // iterate over extra arguments
+    _.each(otherObjects, function (object) {
+      // iterate over each inner object
+      for (var key in object) {
+        // set the value of each key in object 1 to the values in the other objects
+        obj[key] = object[key];
+      }
+    });
+    // return object 1
+    return obj;
   };
 
   // Like extend, but doesn't ever overwrite a key that already
   // exists in obj
   _.defaults = function(obj) {
+    var args = Array.from(arguments);
+    args.reverse();
+    _.extend.apply(this, args);
+    _.extend(obj, args[0]);
+    return obj;
+    // // slice a copy of the arguments array to only include the second argument onwards
+    // var otherObjects = (Array.from(arguments)).slice(1);
+    // // iterate over extra arguments
+    // _.each(otherObjects, function (object) {
+    //   // iterate over each inner object
+    //   for (var key in object) {
+    //     // set the value of each key in object 1 to the values in the other objects
+    //     obj[key] = obj[key] === undefined ? object[key] : obj[key];
+    //   }
+    // });
+    // // return object 1
+    // return obj;
   };
 
 
@@ -271,6 +336,23 @@
   // already computed the result for the given argument and return that value
   // instead if possible.
   _.memoize = function(func) {
+    // create results object
+    var results = {};
+
+    // create inner function
+    var innerFunc = function() {
+      // copy arguments array
+      var args = JSON.stringify(Array.from(arguments));
+      // if args isnt present in the results object
+      if (!results.hasOwnProperty(args)) {
+        // add it
+        results[args] = func.apply(this, arguments);
+      }
+      // then return the value of the results obj at args
+      return results[args];
+    }
+    // return inner function
+    return innerFunc;
   };
 
   // Delays a function for the given number of milliseconds, and then calls
@@ -280,6 +362,7 @@
   // parameter. For example _.delay(someFunction, 500, 'a', 'b') will
   // call someFunction('a', 'b') after 500ms
   _.delay = function(func, wait) {
+    return setTimeout.apply(this, arguments);
   };
 
 
@@ -294,6 +377,21 @@
   // input array. For a tip on how to make a copy of an array, see:
   // http://mdn.io/Array.prototype.slice
   _.shuffle = function(array) {
+    // create a copy of the input array
+    var source = Array.from(array);
+    // create an empty result array
+    var result = [];
+
+    // while the copy of the input is not empty
+    while (source.length > 0) {
+      // generate a random index from the input copy
+      var randomIndex = Math.floor(Math.random() * (source.length));
+      // push the value at that index to the result
+      result.push(source.splice(randomIndex, 1)[0]);
+    }
+
+    // return the result array
+    return result;
   };
 
 
